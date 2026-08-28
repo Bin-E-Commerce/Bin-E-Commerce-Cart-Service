@@ -1,7 +1,7 @@
 # Cart Service
 
 <div align="center">
-  <img src="../../web/public/images/logo/logo_icon.png" alt="Bin E-Commerce" width="88" />
+  <img src="https://raw.githubusercontent.com/Bin-E-Commerce/Bin-E-Commerce-UI-Web/main/public/images/logo/logo_icon.png" alt="Bin E-Commerce" width="88" />
 
   <h2>Reliable cart ownership for every shopping journey</h2>
 
