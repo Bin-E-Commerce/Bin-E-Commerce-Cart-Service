@@ -1,0 +1,15 @@
+# Local environment files may contain credentials and must stay outside Git.
+.env
+.env.*
+!.env.example
+
+# Dependencies and generated output.
+node_modules/
+dist/
+coverage/
+.nestjs/
+
+# Local logs and tooling caches.
+*.log
+.eslintcache
+.cache/
