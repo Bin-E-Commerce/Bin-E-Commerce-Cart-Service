@@ -4,14 +4,14 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
 // Tạo cấu trúc dữ liệu cart có thể chạy lặp qua cơ chế migration của TypeORM.
-export class CreateCarts202608280001 implements MigrationInterface {
-  name = "CreateCarts202608280001";
+export class CreateCarts1787850000000 implements MigrationInterface {
+  name = "CreateCarts1787850000000";
 
   // Tạo bảng và constraint cần thiết cho việc lấy hoặc tạo active cart.
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`);
     await queryRunner.query(`
-      CREATE TABLE "carts" (
+      CREATE TABLE IF NOT EXISTS "carts" (
         "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "owner_type" varchar(20) NOT NULL,
         "owner_id" varchar(255) NOT NULL,
@@ -23,9 +23,24 @@ export class CreateCarts202608280001 implements MigrationInterface {
       )
     `);
     await queryRunner.query(`
-      CREATE UNIQUE INDEX "uq_carts_active_owner"
+      CREATE UNIQUE INDEX IF NOT EXISTS "uq_carts_active_owner"
       ON "carts" ("owner_type", "owner_id")
       WHERE "status" = 'ACTIVE'
+    `);
+    await queryRunner.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1
+          FROM pg_constraint
+          WHERE conrelid = 'carts'::regclass
+            AND conname = 'ck_carts_status'
+        ) THEN
+          ALTER TABLE "carts"
+          ADD CONSTRAINT "ck_carts_status"
+          CHECK ("status" IN ('ACTIVE', 'CHECKED_OUT', 'ABANDONED'));
+        END IF;
+      END $$;
     `);
   }
 

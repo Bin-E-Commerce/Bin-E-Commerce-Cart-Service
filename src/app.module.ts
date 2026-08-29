@@ -7,7 +7,7 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { HealthModule } from "./modules/health/health.module";
 import { CartModule } from "./modules/cart/cart.module";
 
-// Khai báo dependency graph của Cart Service, gồm Postgres và các module nghiệp vụ Phase 1.
+// Khai báo dependency graph của Cart Service, gồm Postgres và các module nghiệp vụ cart.
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -25,8 +25,9 @@ import { CartModule } from "./modules/cart/cart.module";
         database: config.get<string>("POSTGRES_DB"),
         entities: [__dirname + "/**/*.entity{.ts,.js}"],
         migrations: [__dirname + "/database/migrations/*{.ts,.js}"],
-        migrationsRun: config.get<string>("NODE_ENV") === "production",
-        synchronize: config.get<string>("NODE_ENV") !== "production",
+        // Migration là nguồn thay đổi schema duy nhất; không để synchronize tự ý tạo hoặc đổi cột ngoài kiểm soát.
+        migrationsRun: true,
+        synchronize: false,
         ssl:
           config.get<string>("NODE_ENV") === "production"
             ? { rejectUnauthorized: false }

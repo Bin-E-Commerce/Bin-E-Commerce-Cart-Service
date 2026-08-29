@@ -10,9 +10,26 @@ export interface CartResponse {
   ownerType: CartOwnerType;
   ownerId: string;
   status: CartStatus;
-  items: [];
-  totalItems: 0;
-  warnings: [];
+  items: CartItemResponse[];
+  totalItems: number;
+  subtotal: string;
+  warnings: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+// Dòng hàng đã được map khỏi entity TypeORM để không leak persistence model ra API.
+export interface CartItemResponse {
+  id: string;
+  productId: string;
+  variantId: string;
+  sellerShopId: string | null;
+  sku: string;
+  productName: string;
+  variantName: string;
+  imageUrl: string | null;
+  unitPrice: string;
+  originalPrice: string | null;
+  quantity: number;
+  lineTotal: string;
 }
