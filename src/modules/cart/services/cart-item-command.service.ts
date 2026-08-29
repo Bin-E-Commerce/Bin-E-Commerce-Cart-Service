@@ -1,3 +1,6 @@
+// File này chứa command use case của Cart, gồm add/update/remove và đóng cart sau checkout.
+// Product Service vẫn là nguồn sự thật cho product snapshot và tồn kho; Cart không sở hữu inventory.
+
 // Application service này thực hiện use case Add Item cho user đã đăng nhập.
 // Product Service là nguồn sự thật; Cart Service chỉ lưu snapshot sau khi xác nhận product, variant và tồn kho.
 
@@ -16,6 +19,7 @@ import { AddCartItemDto } from "../dto/add-cart-item.dto";
 import { UpdateCartItemDto } from "../dto/update-cart-item.dto";
 import { CartItemRepository } from "../repositories/cart-item.repository";
 import { CartQueryService } from "./cart-query.service";
+import { CartStatus } from "../enums/cart-status.enum";
 
 // Thêm item theo transaction và khóa cart để hai request đồng thời không làm mất phép cộng quantity.
 @Injectable()
@@ -27,6 +31,30 @@ export class CartItemCommandService {
     private readonly cartItemRepository: CartItemRepository,
     private readonly dataSource: DataSource,
   ) {}
+
+  // Đóng active cart sau khi Order Service đã commit order; transaction khóa aggregate để tránh double checkout.
+  async checkoutCart(identity: CartIdentity): Promise<void> {
+    const cart = await this.cartQueryService.findActiveCartEntity(identity);
+    if (!cart) throw new NotFoundException("Không tìm thấy giỏ hàng active.");
+
+    await this.dataSource.transaction(async (manager) => {
+      const lockedCart = await manager.findOne(Cart, {
+        where: {
+          id: cart.id,
+          ownerType: identity.ownerType,
+          ownerId: identity.ownerId,
+          status: CartStatus.ACTIVE,
+        },
+        lock: { mode: "pessimistic_write" },
+      });
+      if (!lockedCart) throw new NotFoundException("Giỏ hàng không còn active.");
+
+      // Đổi trạng thái thay vì xóa item để giữ dữ liệu phục vụ audit/debug; query active sẽ không đọc lại cart này.
+      lockedCart.status = CartStatus.CHECKED_OUT;
+      lockedCart.updatedAt = new Date();
+      await manager.save(Cart, lockedCart);
+    });
+  }
 
   // Validate dữ liệu nguồn trước, sau đó lock cart và cộng quantity hiện tại trong một transaction.
   async addItem(
