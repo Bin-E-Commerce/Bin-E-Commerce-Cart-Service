@@ -6,6 +6,8 @@ import { Cart } from "../../../database/entities/cart.entity";
 import { CartStatus } from "../enums/cart-status.enum";
 import { CartOwnerType } from "../types/cart-identity.type";
 import { CartRepository } from "../repositories/cart.repository";
+import { CartItemRepository } from "../repositories/cart-item.repository";
+import { CartResponseMapper } from "./cart-response-mapper.service";
 import { CartQueryService } from "./cart-query.service";
 
 // Nhóm test cho application service Cart Query.
@@ -30,10 +32,18 @@ describe("CartQueryService", () => {
     const repository = {
       findActiveByIdentity: jest.fn().mockResolvedValue(existingCart),
     } as unknown as CartRepository;
+    const itemRepository = {
+      findByCartId: jest.fn().mockResolvedValue([]),
+    } as unknown as CartItemRepository;
     const dataSource = { transaction: jest.fn() } as unknown as DataSource;
-    const service = new CartQueryService(repository, dataSource);
+    const target = new CartQueryService(
+      repository,
+      itemRepository,
+      new CartResponseMapper(),
+      dataSource,
+    );
 
-    await expect(service.getOrCreateActiveCart(identity)).resolves.toMatchObject({
+    await expect(target.getOrCreateActiveCart(identity)).resolves.toMatchObject({
       id: "cart-1",
       totalItems: 0,
       items: [],
@@ -47,6 +57,9 @@ describe("CartQueryService", () => {
     const repository = {
       findActiveByIdentity: jest.fn().mockResolvedValue(null),
     } as unknown as CartRepository;
+    const itemRepository = {
+      findByCartId: jest.fn().mockResolvedValue([]),
+    } as unknown as CartItemRepository;
     const transactionalRepository = {
       create: jest.fn().mockReturnValue(createdCart),
       save: jest.fn().mockResolvedValue(createdCart),
@@ -56,9 +69,14 @@ describe("CartQueryService", () => {
         callback({ getRepository: () => transactionalRepository }),
       ),
     } as unknown as DataSource;
-    const service = new CartQueryService(repository, dataSource);
+    const target = new CartQueryService(
+      repository,
+      itemRepository,
+      new CartResponseMapper(),
+      dataSource,
+    );
 
-    await expect(service.getOrCreateActiveCart(identity)).resolves.toMatchObject({
+    await expect(target.getOrCreateActiveCart(identity)).resolves.toMatchObject({
       id: "cart-1",
       ownerType: CartOwnerType.GUEST,
       status: CartStatus.ACTIVE,

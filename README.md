@@ -22,7 +22,7 @@
 
 A cart is more than a list of products: it must remain stable when a shopper refreshes a page, opens another tab, or moves from a guest session to an authenticated journey. Cart Service owns that identity boundary so the rest of the platform can work with one predictable active cart.
 
-The current release establishes the cart aggregate and its ownership rules. Item lines, price snapshots, inventory checks, checkout transitions, and guest-to-customer merge are intentionally separated for later phases.
+The current release establishes the cart aggregate, item snapshots, ownership rules, and the authenticated add-item flow. Checkout transitions, stock reservation, and guest-to-customer merge remain separated for later phases.
 
 ## What it does today
 
@@ -31,11 +31,14 @@ The current release establishes the cart aggregate and its ownership rules. Item
 - Creates an empty active cart when one does not exist.
 - Guarantees one active cart per owner with a PostgreSQL partial unique constraint.
 - Handles concurrent first requests safely: a losing request reads the cart created by the winning request.
+- Adds internal products by variant after validating Product Service status and available stock.
+- Stores product name, SKU, image, and price snapshots in `cart_items`.
+- Adds the same variant cumulatively and serializes concurrent writes per cart.
 - Exposes a lightweight health check and development-only Swagger documentation.
 
 ## Runtime trust boundary
 
-> **Data and access:** this service writes only to its Cart Service PostgreSQL database (`carts` table). Public traffic should enter through API Gateway; the service consumes the Gateway-forwarded `x-user-id` or `x-session-id` identity headers and does not validate JWTs itself.
+> **Data and access:** this service writes only to its Cart Service PostgreSQL database (`carts` and `cart_items` tables). Public traffic should enter through API Gateway; the service consumes the Gateway-forwarded `x-user-id` or `x-session-id` identity headers and does not validate JWTs itself.
 >
 > **Secrets:** no OpenAI key or browser secret is used here. Database credentials are supplied through environment variables and must never be committed.
 >
@@ -60,7 +63,7 @@ npm run dev
 
 The API listens on `http://localhost:3003` by default. Swagger is available in development at `http://localhost:3003/docs`.
 
-> **Before the first request:** make sure the database credentials in `.env` are valid and apply the migration in `src/database/migrations/202608280001-create-carts.ts` using the repository's migration workflow.
+> **Before the first request:** make sure the database credentials in `.env` and `PRODUCT_SERVICE_URL` are valid. Migrations run automatically on service startup.
 
 ## See it work
 
@@ -100,6 +103,15 @@ The response is deliberately small in Phase 1:
 }
 ```
 
+Add an internal product variant to an authenticated cart:
+
+```powershell
+curl -X POST http://localhost:3003/api/v1/cart/items `
+  -H "content-type: application/json" `
+  -H "x-user-id: customer-id-from-gateway" `
+  -d '{"productId":"<product-id>","variantId":"<variant-id>","quantity":2}'
+```
+
 ## How it fits the platform
 
 ```mermaid
@@ -108,7 +120,7 @@ flowchart LR
     Web --> Gateway[API Gateway\nJWT + route policy]
     Gateway --> Cart[Cart Service\nidentity + active cart]
     Cart --> DB[(PostgreSQL\ncarts)]
-    Cart -. future .-> Items[Cart items + price snapshot]
+    Cart --> Items[Cart items + price snapshot]
     Items -. future .-> Checkout[Checkout workflow]
 ```
 
@@ -137,6 +149,8 @@ services/cart-service/
 ├── package.json
 └── README.md
 ```
+
+The Cart module follows the same flat domain-module convention as Catalog: `controllers`, `dto`, `services`, and `types` are directly under `modules/cart`. Supporting boundaries such as `clients`, `repositories`, `errors`, `enums`, and `utils` remain beside them so each Cart responsibility is easy to discover.
 
 ## API reference
 
@@ -178,7 +192,7 @@ The resolver normalizes Gateway headers into a domain identity. The query servic
 
 ### Why items are not here yet
 
-Phase 1 intentionally avoids mixing product, inventory, and pricing policy into cart creation. A future item use case can add immutable price snapshots, quantity validation, product availability checks, and checkout handoff without changing the ownership contract.
+Cart item commands validate Product Service data before writing local snapshots. The service intentionally does not reserve stock or publish Kafka events yet; those concerns belong to later phases without changing the cart ownership contract.
 
 </details>
 

@@ -26,4 +26,11 @@ export class CartRepository {
       },
     });
   }
+
+  // Tìm cart theo ID sau khi command đã xác định ownership; query này chỉ nhận cart ACTIVE.
+  findActiveById(id: string): Promise<Cart | null> {
+    return this.repository.findOne({
+      where: { id, status: CartStatus.ACTIVE },
+    });
+  }
 }
