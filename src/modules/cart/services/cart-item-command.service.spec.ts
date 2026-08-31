@@ -143,6 +143,26 @@ describe("CartItemCommandService", () => {
     expect(result).toEqual(response);
   });
 
+  // Seller vẫn dùng chung cart như Customer nhưng không được mua sản phẩm thuộc shop của chính mình.
+  it("rejects a seller buying from their own shop", async () => {
+    // Arrange
+    const { target, mockProductCatalogClient, itemRepository } = setup();
+    (mockProductCatalogClient.getProduct as jest.Mock).mockResolvedValue(
+      product({ sellerOwnerId: identity.ownerId }),
+    );
+    const dto: AddCartItemDto = {
+      productId: "product-1",
+      variantId: "variant-1",
+      quantity: 1,
+    };
+
+    // Act & Assert
+    await expect(target.addItem(identity, dto)).rejects.toBeInstanceOf(
+      CartProductNotPurchasableError,
+    );
+    expect(itemRepository.save).not.toHaveBeenCalled();
+  });
+
   // SKU trùng phải cộng quantity hiện tại thay vì tạo dòng hàng thứ hai.
   it("increments quantity when the variant already exists", async () => {
     // Arrange

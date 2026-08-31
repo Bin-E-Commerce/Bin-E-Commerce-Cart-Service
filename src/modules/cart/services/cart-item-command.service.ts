@@ -13,7 +13,7 @@ import {
   CartProductNotPurchasableError,
   CartStockExceededError,
 } from "../errors/cart-item.errors";
-import { CartIdentity } from "../types/cart-identity.type";
+import { CartIdentity, CartOwnerType } from "../types/cart-identity.type";
 import { CartResponse } from "../types/cart-response.type";
 import { AddCartItemDto } from "../dto/add-cart-item.dto";
 import { UpdateCartItemDto } from "../dto/update-cart-item.dto";
@@ -71,6 +71,9 @@ export class CartItemCommandService {
     }
     if (product.originType !== "INTERNAL" || product.status !== "ACTIVE") {
       throw new CartProductNotPurchasableError();
+    }
+    if (identity.ownerType === CartOwnerType.CUSTOMER && product.sellerOwnerId === identity.ownerId) {
+      throw new CartProductNotPurchasableError("Bạn không thể mua sản phẩm của shop mình.");
     }
     if (variant.status !== "ACTIVE") {
       throw new CartProductNotPurchasableError(
