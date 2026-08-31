@@ -28,6 +28,7 @@ export interface ProductCatalogProduct {
   originType?: "INTERNAL" | "EXTERNAL";
   status: "DRAFT" | "ACTIVE" | "INACTIVE" | "DELETED";
   sellerShopId?: string | null;
+  sellerOwnerId?: string | null;
   name: string;
   images?: ProductCatalogImage[];
   variants: ProductCatalogVariant[];
