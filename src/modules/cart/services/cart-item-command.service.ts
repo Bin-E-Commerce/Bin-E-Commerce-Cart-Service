@@ -83,7 +83,7 @@ export class CartItemCommandService {
 
     const availableStock = Math.max(
       0,
-      variant.inventory?.quantityAvailable ?? variant.stockQuantity ?? 0,
+      variant.inventory?.quantityAvailable ?? 0,
     );
     if (availableStock < dto.quantity) throw new CartStockExceededError();
 
@@ -181,7 +181,7 @@ export class CartItemCommandService {
 
       const availableStock = Math.max(
         0,
-        variant.inventory?.quantityAvailable ?? variant.stockQuantity ?? 0,
+        variant.inventory?.quantityAvailable ?? 0,
       );
       if (availableStock < dto.quantity) throw new CartStockExceededError();
     }
