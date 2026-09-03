@@ -8,16 +8,16 @@ import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { Cart } from "../../database/entities/cart.entity";
 import { CartItem } from "../../database/entities/cart-item.entity";
-import { CartController } from "./controllers/cart.controller";
-import { ProductCatalogClient } from "./clients/product-catalog.client";
-import { CartItemRepository } from "./repositories/cart-item.repository";
-import { CartRepository } from "./repositories/cart.repository";
-import { CartItemCommandService } from "./services/cart-item-command.service";
-import { CartIdentityResolver } from "./services/cart-identity-resolver.service";
-import { CartQueryService } from "./services/cart-query.service";
-import { CartResponseMapper } from "./services/cart-response-mapper.service";
-import { InternalCartController } from "./controllers/internal-cart.controller";
-import { InternalServiceGuard } from "./guards/internal-service.guard";
+import { CartController } from "./presentation/controllers/cart.controller";
+import { ProductCatalogClient } from "./application/clients/product-catalog.client";
+import { CartItemRepository } from "./infrastructure/repositories/cart-item.repository";
+import { CartRepository } from "./infrastructure/repositories/cart.repository";
+import { CartItemCommandService } from "./application/services/cart-item-command.service";
+import { CartIdentityResolver } from "./application/services/cart-identity-resolver.service";
+import { CartQueryService } from "./application/services/cart-query.service";
+import { CartResponseMapper } from "./application/services/cart-response-mapper.service";
+import { InternalCartController } from "./presentation/controllers/internal-cart.controller";
+import { InternalServiceGuard } from "./presentation/guards/internal-service.guard";
 
 // Đăng ký entity, controller và application services của Cart bounded context.
 @Module({

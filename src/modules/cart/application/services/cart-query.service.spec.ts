@@ -2,11 +2,11 @@
 // Test dùng mock repository/data source để không phụ thuộc PostgreSQL khi chạy unit test.
 
 import { DataSource } from "typeorm";
-import { Cart } from "../../../database/entities/cart.entity";
-import { CartStatus } from "../enums/cart-status.enum";
+import { Cart } from "../../../../database/entities/cart.entity";
+import { CartStatus } from "../../../../database/enums/cart-status.enum";
 import { CartOwnerType } from "../types/cart-identity.type";
-import { CartRepository } from "../repositories/cart.repository";
-import { CartItemRepository } from "../repositories/cart-item.repository";
+import { CartRepository } from "../../infrastructure/repositories/cart.repository";
+import { CartItemRepository } from "../../infrastructure/repositories/cart-item.repository";
 import { CartResponseMapper } from "./cart-response-mapper.service";
 import { CartQueryService } from "./cart-query.service";
 

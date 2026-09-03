@@ -4,9 +4,9 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { Cart } from "../../../database/entities/cart.entity";
-import { CartStatus } from "../enums/cart-status.enum";
-import { CartIdentity } from "../types/cart-identity.type";
+import { Cart } from "../../../../database/entities/cart.entity";
+import { CartStatus } from "../../../../database/enums/cart-status.enum";
+import { CartIdentity } from "../../application/types/cart-identity.type";
 
 // Đóng gói query active cart để application service không phụ thuộc TypeORM API.
 @Injectable()
