@@ -2,7 +2,7 @@
 // Items để rỗng có chủ đích vì nghiệp vụ Add Item chưa được triển khai.
 
 import { CartOwnerType } from "./cart-identity.type";
-import { CartStatus } from "../enums/cart-status.enum";
+import { CartStatus } from "../../../../database/enums/cart-status.enum";
 
 // DTO đọc cart tối thiểu, không để lộ entity TypeORM ra controller.
 export interface CartResponse {

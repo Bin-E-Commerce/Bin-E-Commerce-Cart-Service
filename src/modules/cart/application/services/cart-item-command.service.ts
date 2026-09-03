@@ -6,8 +6,8 @@
 
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { DataSource } from "typeorm";
-import { Cart } from "../../../database/entities/cart.entity";
-import { CartItem } from "../../../database/entities/cart-item.entity";
+import { Cart } from "../../../../database/entities/cart.entity";
+import { CartItem } from "../../../../database/entities/cart-item.entity";
 import { ProductCatalogClient } from "../clients/product-catalog.client";
 import {
   CartProductNotPurchasableError,
@@ -15,11 +15,11 @@ import {
 } from "../errors/cart-item.errors";
 import { CartIdentity, CartOwnerType } from "../types/cart-identity.type";
 import { CartResponse } from "../types/cart-response.type";
-import { AddCartItemDto } from "../dto/add-cart-item.dto";
-import { UpdateCartItemDto } from "../dto/update-cart-item.dto";
-import { CartItemRepository } from "../repositories/cart-item.repository";
+import { AddCartItemDto } from "../../presentation/dto/add-cart-item.dto";
+import { UpdateCartItemDto } from "../../presentation/dto/update-cart-item.dto";
+import { CartItemRepository } from "../../infrastructure/repositories/cart-item.repository";
 import { CartQueryService } from "./cart-query.service";
-import { CartStatus } from "../enums/cart-status.enum";
+import { CartStatus } from "../../../../database/enums/cart-status.enum";
 
 // Thêm item theo transaction và khóa cart để hai request đồng thời không làm mất phép cộng quantity.
 @Injectable()

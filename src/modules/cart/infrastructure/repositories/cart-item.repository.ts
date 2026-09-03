@@ -3,7 +3,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { CartItem } from "../../../database/entities/cart-item.entity";
+import { CartItem } from "../../../../database/entities/cart-item.entity";
 
 // Cung cấp query item theo cart và variant, đồng thời giữ một nơi duy nhất cho ordering response.
 @Injectable()

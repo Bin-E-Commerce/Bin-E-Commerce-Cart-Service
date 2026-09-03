@@ -2,17 +2,17 @@
 // Các dependency bên ngoài được mock để test chỉ tập trung vào application service.
 
 import { DataSource } from "typeorm";
-import { Cart } from "../../../database/entities/cart.entity";
-import { CartStatus } from "../enums/cart-status.enum";
+import { Cart } from "../../../../database/entities/cart.entity";
+import { CartStatus } from "../../../../database/enums/cart-status.enum";
 import {
   CartProductNotPurchasableError,
   CartStockExceededError,
 } from "../errors/cart-item.errors";
 import { CartOwnerType } from "../types/cart-identity.type";
 import type { ProductCatalogProduct } from "../types/product-catalog-product.type";
-import { AddCartItemDto } from "../dto/add-cart-item.dto";
+import { AddCartItemDto } from "../../presentation/dto/add-cart-item.dto";
 import { ProductCatalogClient } from "../clients/product-catalog.client";
-import { CartItemRepository } from "../repositories/cart-item.repository";
+import { CartItemRepository } from "../../infrastructure/repositories/cart-item.repository";
 import { CartItemCommandService } from "./cart-item-command.service";
 import { CartQueryService } from "./cart-query.service";
 

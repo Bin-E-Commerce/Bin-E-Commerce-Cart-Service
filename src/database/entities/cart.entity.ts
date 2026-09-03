@@ -9,7 +9,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from "typeorm";
-import { CartStatus } from "../../modules/cart/enums/cart-status.enum";
+import { CartStatus } from "../enums/cart-status.enum";
 
 // Bảng cart là aggregate root tối thiểu, tách owner identity khỏi user database của Auth Service.
 @Entity({ name: "carts" })

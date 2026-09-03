@@ -14,12 +14,12 @@ import {
 } from "@nestjs/common";
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import type { Request } from "express";
-import { CartItemCommandService } from "../services/cart-item-command.service";
-import { CartQueryService } from "../services/cart-query.service";
-import { CartResponse } from "../types/cart-response.type";
+import { CartItemCommandService } from "../../application/services/cart-item-command.service";
+import { CartQueryService } from "../../application/services/cart-query.service";
+import { CartResponse } from "../../application/types/cart-response.type";
 import { AddCartItemDto } from "../dto/add-cart-item.dto";
 import { UpdateCartItemDto } from "../dto/update-cart-item.dto";
-import { CartIdentityResolver } from "../services/cart-identity-resolver.service";
+import { CartIdentityResolver } from "../../application/services/cart-identity-resolver.service";
 
 // Route cart cấp cho cả Guest và Customer; Gateway đã đánh dấu route này allow guest.
 @ApiTags("cart")
