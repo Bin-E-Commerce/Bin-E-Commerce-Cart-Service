@@ -3,9 +3,9 @@
 // Cart Service vẫn resolve owner từ x-user-id để không cho service caller thao tác chéo tài khoản.
 
 import { Controller, Get, NotFoundException, Post, UseGuards } from "@nestjs/common";
-import { CartIdentityResolver } from "../../application/services/cart-identity-resolver.service";
-import { CartItemCommandService } from "../../application/services/cart-item-command.service";
-import { CartQueryService } from "../../application/services/cart-query.service";
+import { CartIdentityResolver } from "../../application/services/cart-identity/cart-identity-resolver.service";
+import { CartItemCommandService } from "../../application/services/cart-items/cart-item-command.service";
+import { CartQueryService } from "../../application/services/cart-queries/cart-query.service";
 import { InternalServiceGuard } from "../guards/internal-service.guard";
 import type { CartResponse } from "../../application/types/cart-response.type";
 import type { Request } from "express";

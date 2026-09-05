@@ -2,9 +2,9 @@
 // Test không cần database vì đây là logic boundary thuần request header.
 
 import type { Request } from "express";
-import { InvalidCartIdentityError } from "../errors/cart-identity.errors";
+import { InvalidCartIdentityError } from "../../errors/cart-identity.errors";
 import { CartIdentityResolver } from "./cart-identity-resolver.service";
-import { CartOwnerType } from "../types/cart-identity.type";
+import { CartOwnerType } from "../../types/cart-identity.type";
 
 // Nhóm test cho identity resolver, nền tảng của ownership trong mọi phase cart.
 describe("CartIdentityResolver", () => {
