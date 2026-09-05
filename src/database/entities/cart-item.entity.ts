@@ -42,6 +42,15 @@ export class CartItem {
   @Column({ name: "seller_shop_id", type: "uuid", nullable: true })
   sellerShopId!: string | null;
 
+  // Luu nguon goc tai thoi diem them vao gio de phan biet hang noi bo va san pham crawl.
+  @Column({
+    name: "origin_type",
+    type: "varchar",
+    length: 16,
+    default: "INTERNAL",
+  })
+  originType!: "INTERNAL" | "EXTERNAL";
+
   // Snapshot giúp trang cart render ổn định ngay cả khi Product Service thay đổi dữ liệu hiển thị.
   @Column({ type: "varchar", length: 160 })
   sku!: string;

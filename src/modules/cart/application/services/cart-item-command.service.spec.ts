@@ -41,7 +41,9 @@ describe("CartItemCommandService", () => {
   };
 
   // Tạo product snapshot tối thiểu để test không phụ thuộc database Product Service.
-  function product(overrides: Partial<ProductCatalogProduct> = {}): ProductCatalogProduct {
+  function product(
+    overrides: Partial<ProductCatalogProduct> = {},
+  ): ProductCatalogProduct {
     return {
       id: "product-1",
       originType: "INTERNAL",
@@ -79,9 +81,7 @@ describe("CartItemCommandService", () => {
     const mockCartItemRepository = {
       findByCartAndId: jest.fn().mockResolvedValue(null),
     } as unknown as CartItemRepository;
-    const savedItem = existingItem
-      ? { ...existingItem, id: "item-1" }
-      : null;
+    const savedItem = existingItem ? { ...existingItem, id: "item-1" } : null;
     const itemRepository = {
       findOne: jest.fn().mockResolvedValue(savedItem),
       create: jest.fn((value) => ({ id: "item-1", ...value })),
@@ -94,8 +94,9 @@ describe("CartItemCommandService", () => {
       save: jest.fn().mockResolvedValue(cart),
     };
     const mockDataSource = {
-      transaction: jest.fn(async (callback: (value: typeof manager) => unknown) =>
-        callback(manager),
+      transaction: jest.fn(
+        async (callback: (value: typeof manager) => unknown) =>
+          callback(manager),
       ),
     } as unknown as DataSource;
     const target = new CartItemCommandService(
@@ -133,13 +134,16 @@ describe("CartItemCommandService", () => {
         cartId: "cart-1",
         productId: "product-1",
         variantId: "variant-1",
+        originType: "INTERNAL",
         sku: "SKU-001",
         unitPrice: "22000.00",
         quantity: 2,
       }),
     );
     expect(itemRepository.save).toHaveBeenCalledTimes(1);
-    expect(mockCartQueryService.getActiveCartById).toHaveBeenCalledWith("cart-1");
+    expect(mockCartQueryService.getActiveCartById).toHaveBeenCalledWith(
+      "cart-1",
+    );
     expect(result).toEqual(response);
   });
 
@@ -200,30 +204,49 @@ describe("CartItemCommandService", () => {
     expect(itemRepository.save).not.toHaveBeenCalled();
   });
 
-  // Product external không được đưa vào cart nội bộ dù client gửi đúng product/variant ID.
-  it("rejects external products", async () => {
+  // Product crawl được lưu vào cart để người dùng theo dõi, nhưng checkout sẽ chặn ở Product Service.
+  it("stores external products without using crawled stock as purchasable inventory", async () => {
     // Arrange
     const { target, itemRepository, mockProductCatalogClient } = setup();
     (mockProductCatalogClient.getProduct as jest.Mock).mockResolvedValue(
-      product({ originType: "EXTERNAL" }),
+      product({
+        originType: "EXTERNAL",
+        variants: [
+          {
+            ...product().variants[0]!,
+            inventory: { quantityAvailable: 0 },
+          },
+        ],
+      }),
     );
 
-    // Act & Assert
-    await expect(
-      target.addItem(identity, {
+    // Act
+    await target.addItem(identity, {
+      productId: "product-1",
+      variantId: "variant-1",
+      quantity: 1,
+    });
+
+    // Assert
+    expect(itemRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
         productId: "product-1",
-        variantId: "variant-1",
+        originType: "EXTERNAL",
         quantity: 1,
       }),
-    ).rejects.toBeInstanceOf(CartProductNotPurchasableError);
-    expect(itemRepository.save).not.toHaveBeenCalled();
+    );
+    expect(itemRepository.save).toHaveBeenCalledTimes(1);
   });
 
   // Update quantity phải đọc đúng item thuộc cart hiện tại, kiểm tra stock khi tăng và trả response cart mới.
   it("updates quantity when the requested quantity is available", async () => {
     // Arrange
-    const { target, itemRepository, mockCartItemRepository, mockCartQueryService } =
-      setup();
+    const {
+      target,
+      itemRepository,
+      mockCartItemRepository,
+      mockCartQueryService,
+    } = setup();
     const currentItem = {
       id: "item-1",
       cartId: "cart-1",
@@ -243,7 +266,9 @@ describe("CartItemCommandService", () => {
     expect(itemRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({ id: "item-1", quantity: 4 }),
     );
-    expect(mockCartQueryService.getActiveCartById).toHaveBeenCalledWith("cart-1");
+    expect(mockCartQueryService.getActiveCartById).toHaveBeenCalledWith(
+      "cart-1",
+    );
     expect(result).toEqual(response);
   });
 

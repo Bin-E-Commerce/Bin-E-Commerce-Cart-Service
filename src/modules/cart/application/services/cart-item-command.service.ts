@@ -69,7 +69,9 @@ export class CartItemCommandService {
     if (!variant) {
       throw new NotFoundException("Không tìm thấy phân loại sản phẩm.");
     }
-    if (product.originType !== "INTERNAL" || product.status !== "ACTIVE") {
+    // Sản phẩm crawl vẫn được lưu như một lựa chọn tham khảo; chỉ sản phẩm không active mới bị chặn khỏi cart.
+    // Tồn kho của dữ liệu crawl không phải tồn kho fulfillment của Bin nên không được dùng để khóa thao tác lưu.
+    if (product.status !== "ACTIVE") {
       throw new CartProductNotPurchasableError();
     }
     if (identity.ownerType === CartOwnerType.CUSTOMER && product.sellerOwnerId === identity.ownerId) {
@@ -81,11 +83,11 @@ export class CartItemCommandService {
       );
     }
 
-    const availableStock = Math.max(
-      0,
-      variant.inventory?.quantityAvailable ?? 0,
-    );
-    if (availableStock < dto.quantity) throw new CartStockExceededError();
+    const isInternalProduct = product.originType !== "EXTERNAL";
+    const availableStock = Math.max(0, variant.inventory?.quantityAvailable ?? 0);
+    if (isInternalProduct && availableStock < dto.quantity) {
+      throw new CartStockExceededError();
+    }
 
     const cart = await this.cartQueryService.getOrCreateActiveCartEntity(identity);
 
@@ -102,8 +104,10 @@ export class CartItemCommandService {
       });
       const nextQuantity = (existingItem?.quantity ?? 0) + dto.quantity;
 
-      // Không reserve stock ở phase này, nhưng vẫn chặn tổng quantity vượt số lượng Product Service vừa xác nhận.
-      if (nextQuantity > availableStock) throw new CartStockExceededError();
+      // Chỉ giới hạn stock với hàng nội bộ; hàng crawl không được coi là nguồn tồn kho để đặt hàng.
+      if (isInternalProduct && nextQuantity > availableStock) {
+        throw new CartStockExceededError();
+      }
 
       // Chạm updated_at của aggregate để cache và client biết cart vừa thay đổi dù cart row không có item count.
       lockedCart.updatedAt = new Date();
@@ -125,6 +129,7 @@ export class CartItemCommandService {
         productId: product.id,
         variantId: variant.id,
         sellerShopId: product.sellerShopId ?? null,
+        originType: product.originType ?? "INTERNAL",
         sku: variant.sku,
         productName: product.name,
         variantName: variant.name,
@@ -170,7 +175,8 @@ export class CartItemCommandService {
       if (!variant) {
         throw new NotFoundException("Không tìm thấy phân loại sản phẩm.");
       }
-      if (product.originType !== "INTERNAL" || product.status !== "ACTIVE") {
+      // Item crawl đã lưu vẫn có thể được tăng/giảm như một danh sách tham khảo khi variant còn active.
+      if (product.status !== "ACTIVE") {
         throw new CartProductNotPurchasableError();
       }
       if (variant.status !== "ACTIVE") {
@@ -179,11 +185,11 @@ export class CartItemCommandService {
         );
       }
 
-      const availableStock = Math.max(
-        0,
-        variant.inventory?.quantityAvailable ?? 0,
-      );
-      if (availableStock < dto.quantity) throw new CartStockExceededError();
+      const isInternalProduct = product.originType !== "EXTERNAL";
+      const availableStock = Math.max(0, variant.inventory?.quantityAvailable ?? 0);
+      if (isInternalProduct && availableStock < dto.quantity) {
+        throw new CartStockExceededError();
+      }
     }
 
     await this.dataSource.transaction(async (manager) => {
