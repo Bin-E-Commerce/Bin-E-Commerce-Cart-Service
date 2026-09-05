@@ -12,10 +12,10 @@ import { CartController } from "./presentation/controllers/cart.controller";
 import { ProductCatalogClient } from "./application/clients/product-catalog.client";
 import { CartItemRepository } from "./infrastructure/repositories/cart-item.repository";
 import { CartRepository } from "./infrastructure/repositories/cart.repository";
-import { CartItemCommandService } from "./application/services/cart-item-command.service";
-import { CartIdentityResolver } from "./application/services/cart-identity-resolver.service";
-import { CartQueryService } from "./application/services/cart-query.service";
-import { CartResponseMapper } from "./application/services/cart-response-mapper.service";
+import { CartItemCommandService } from "./application/services/cart-items/cart-item-command.service";
+import { CartIdentityResolver } from "./application/services/cart-identity/cart-identity-resolver.service";
+import { CartQueryService } from "./application/services/cart-queries/cart-query.service";
+import { CartResponseMapper } from "./application/services/cart-response/cart-response-mapper.service";
 import { InternalCartController } from "./presentation/controllers/internal-cart.controller";
 import { InternalServiceGuard } from "./presentation/guards/internal-service.guard";
 
