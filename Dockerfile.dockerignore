@@ -1,0 +1,29 @@
+# Docker context là root repository; chỉ giữ metadata cần để build Cart.
+*
+!package.json
+!package-lock.json
+!tsconfig.base.json
+!packages/
+!packages/common/
+!packages/common/**
+!services/
+!services/cart-service/
+!services/cart-service/package.json
+!services/cart-service/tsconfig.json
+!services/cart-service/nest-cli.json
+!services/cart-service/src/
+!services/cart-service/src/**
+
+# Không đưa secret, dependency và output local vào context.
+**/node_modules
+**/dist
+**/coverage
+**/.env
+**/.env.*
+!services/cart-service/.env.example
+
+# Metadata và file tạm không phục vụ build.
+**/.git
+**/.gitignore
+**/.vscode
+**/*.log

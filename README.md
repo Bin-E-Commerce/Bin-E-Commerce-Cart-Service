@@ -61,11 +61,11 @@ Cart Service owns the active-cart aggregate, resolves the owner identity, valida
 | Attribute | Value |
 | --- | --- |
 | Service | cart-service |
-| Default port | 3003 |
+| Default port | 3010 local / 3003 Compose |
 | HTTP prefix | /api |
 | Public URI version | v1 |
 | Development docs | /docs |
-| Health endpoint | /api/health |
+| Health endpoint | /api/v1/health |
 | Database | PostgreSQL + TypeORM |
 | Downstream dependency | Product Service |
 | Internal authentication | InternalServiceGuard and shared token |
@@ -179,7 +179,7 @@ The service expects PostgreSQL and Product Service to be reachable through the v
 ### 6.2. Check health and OpenAPI
 
 ~~~powershell
-curl http://localhost:3003/api/health
+curl http://localhost:3010/api/v1/health
 ~~~
 
 Open http://localhost:3003/docs in development. Swagger describes the public cart controller; internal endpoints should remain a service-to-service contract.
@@ -350,7 +350,7 @@ The current internal controller exposes GET internal/carts/active and POST inter
 
 ## 12. API Surface
 
-All public cart routes use /api/v1. The health route is /api/health.
+All public cart routes, including health, use /api/v1.
 
 ### Public cart API
 
@@ -360,7 +360,7 @@ All public cart routes use /api/v1. The health route is /api/health.
 | POST | /api/v1/cart/items | Add a product variant |
 | PATCH | /api/v1/cart/items/:itemId | Set supported item fields/quantity |
 | DELETE | /api/v1/cart/items/:itemId | Remove an item from the owner cart |
-| GET | /api/health | Process health |
+| GET | /api/v1/health | Process health |
 
 ### Internal checkout API
 
