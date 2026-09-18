@@ -29,7 +29,8 @@ export class CartQueryService {
 
   // Resolve entity để các command dùng chung quy tắc tạo cart mà không lặp lại race-condition handling.
   async getOrCreateActiveCartEntity(identity: CartIdentity): Promise<Cart> {
-    const existingCart = await this.cartRepository.findActiveByIdentity(identity);
+    const existingCart =
+      await this.cartRepository.findActiveByIdentity(identity);
     if (existingCart) return existingCart;
 
     try {
@@ -46,9 +47,8 @@ export class CartQueryService {
     } catch (error) {
       // Hai tab có thể cùng tạo lần đầu; unique constraint thắng và request này đọc lại cart đã được tab kia tạo.
       if (!this.isUniqueViolation(error)) throw error;
-      const concurrentCart = await this.cartRepository.findActiveByIdentity(
-        identity,
-      );
+      const concurrentCart =
+        await this.cartRepository.findActiveByIdentity(identity);
       if (!concurrentCart) throw error;
       return concurrentCart;
     }
@@ -59,11 +59,22 @@ export class CartQueryService {
     return this.cartRepository.findActiveByIdentity(identity);
   }
 
-  // Đọc cart active theo ID sau command để trả response có item mới nhất.
-  async getActiveCartById(id: string): Promise<CartResponse> {
+  // Đọc cart active theo ID và có thể giới hạn một item cho luồng Mua ngay.
+  // itemId chỉ được áp dụng sau khi cart đã được resolve theo owner ở controller nội bộ,
+  // vì vậy Order Service không thể dùng một itemId của tài khoản khác để đọc dữ liệu.
+  async getActiveCartById(id: string, itemId?: string): Promise<CartResponse> {
     const cart = await this.cartRepository.findActiveById(id);
     if (!cart) throw new NotFoundException("Không tìm thấy giỏ hàng active.");
-    return this.toResponse(cart);
+    const items = await this.cartItemRepository.findByCartId(cart.id);
+    if (!itemId) return this.cartResponseMapper.toResponse(cart, items);
+
+    const selectedItem = items.find((item) => item.id === itemId);
+    if (!selectedItem) {
+      throw new NotFoundException(
+        "Không tìm thấy sản phẩm trong giỏ hàng active.",
+      );
+    }
+    return this.cartResponseMapper.toResponse(cart, [selectedItem]);
   }
 
   // Tách entity khỏi response và load item qua repository riêng để không leak persistence model.

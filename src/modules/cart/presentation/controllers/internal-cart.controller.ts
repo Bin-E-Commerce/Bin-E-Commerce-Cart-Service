@@ -2,7 +2,14 @@
 // Các route không đi qua API Gateway và không nhận cartId từ client công khai.
 // Cart Service vẫn resolve owner từ x-user-id để không cho service caller thao tác chéo tài khoản.
 
-import { Controller, Get, NotFoundException, Post, UseGuards } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  NotFoundException,
+  Post,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
 import { CartIdentityResolver } from "../../application/services/cart-identity/cart-identity-resolver.service";
 import { CartItemCommandService } from "../../application/services/cart-items/cart-item-command.service";
 import { CartQueryService } from "../../application/services/cart-queries/cart-query.service";
@@ -21,13 +28,17 @@ export class InternalCartController {
     private readonly cartItemCommandService: CartItemCommandService,
   ) {}
 
-  // Lấy active cart hiện tại mà không tạo cart rỗng khi user chưa từng thêm sản phẩm.
+  // Lấy toàn bộ cart hoặc đúng một item của owner; itemId phục vụ riêng cho checkout Mua ngay.
   @Get("active")
-  async getActiveCart(@Req() request: Request): Promise<CartResponse> {
+  async getActiveCart(
+    @Req() request: Request,
+    @Query("itemId") itemId?: string,
+  ): Promise<CartResponse> {
     const identity = this.identityResolver.resolve(request);
     const cart = await this.cartQueryService.findActiveCartEntity(identity);
-    if (!cart) throw new NotFoundException("Không tìm thấy giỏ hàng đang hoạt động.");
-    return this.cartQueryService.getActiveCartById(cart.id);
+    if (!cart)
+      throw new NotFoundException("Không tìm thấy giỏ hàng đang hoạt động.");
+    return this.cartQueryService.getActiveCartById(cart.id, itemId);
   }
 
   // Đánh dấu active cart đã checkout để lần đọc tiếp theo tạo một cart rỗng mới.
@@ -36,5 +47,17 @@ export class InternalCartController {
     const identity = this.identityResolver.resolve(request);
     await this.cartItemCommandService.checkoutCart(identity);
     return { status: "CHECKED_OUT" };
+  }
+
+  // Xóa đúng item sau khi order Mua ngay đã commit, không đóng toàn bộ active cart.
+  @Post("checkout-item")
+  async checkoutCartItem(
+    @Req() request: Request,
+    @Query("itemId") itemId?: string,
+  ): Promise<{ status: string }> {
+    if (!itemId) throw new NotFoundException("Thiếu item cần checkout.");
+    const identity = this.identityResolver.resolve(request);
+    await this.cartItemCommandService.checkoutCartItem(identity, itemId);
+    return { status: "ITEM_CHECKED_OUT" };
   }
 }

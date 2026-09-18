@@ -47,12 +47,50 @@ export class CartItemCommandService {
         },
         lock: { mode: "pessimistic_write" },
       });
-      if (!lockedCart) throw new NotFoundException("Giỏ hàng không còn active.");
+      if (!lockedCart)
+        throw new NotFoundException("Giỏ hàng không còn active.");
 
       // Đổi trạng thái thay vì xóa item để giữ dữ liệu phục vụ audit/debug; query active sẽ không đọc lại cart này.
       lockedCart.status = CartStatus.CHECKED_OUT;
       lockedCart.updatedAt = new Date();
       await manager.save(Cart, lockedCart);
+    });
+  }
+
+  // Xóa đúng item đã được mua bằng Mua ngay nhưng giữ nguyên active cart để các sản phẩm khác
+  // vẫn còn trong giỏ. Transaction khóa cart và item cùng lúc để retry sau khi order commit không xóa nhầm dòng khác.
+  async checkoutCartItem(
+    identity: CartIdentity,
+    itemId: string,
+  ): Promise<void> {
+    const cart = await this.cartQueryService.findActiveCartEntity(identity);
+    if (!cart) throw new NotFoundException("Không tìm thấy giỏ hàng active.");
+
+    await this.dataSource.transaction(async (manager) => {
+      const lockedCart = await manager.findOne(Cart, {
+        where: {
+          id: cart.id,
+          ownerType: identity.ownerType,
+          ownerId: identity.ownerId,
+          status: CartStatus.ACTIVE,
+        },
+        lock: { mode: "pessimistic_write" },
+      });
+      if (!lockedCart)
+        throw new NotFoundException("Giỏ hàng không còn active.");
+
+      const itemRepository = manager.getRepository(CartItem);
+      const item = await itemRepository.findOne({
+        where: { id: itemId, cartId: lockedCart.id },
+      });
+      if (!item) {
+        // Idempotent cleanup: order có thể đã commit và request cleanup được retry.
+        return;
+      }
+
+      lockedCart.updatedAt = new Date();
+      await manager.save(Cart, lockedCart);
+      await itemRepository.remove(item);
     });
   }
 
@@ -74,8 +112,13 @@ export class CartItemCommandService {
     if (product.status !== "ACTIVE") {
       throw new CartProductNotPurchasableError();
     }
-    if (identity.ownerType === CartOwnerType.CUSTOMER && product.sellerOwnerId === identity.ownerId) {
-      throw new CartProductNotPurchasableError("Bạn không thể mua sản phẩm của shop mình.");
+    if (
+      identity.ownerType === CartOwnerType.CUSTOMER &&
+      product.sellerOwnerId === identity.ownerId
+    ) {
+      throw new CartProductNotPurchasableError(
+        "Bạn không thể mua sản phẩm của shop mình.",
+      );
     }
     if (variant.status !== "ACTIVE") {
       throw new CartProductNotPurchasableError(
@@ -84,12 +127,16 @@ export class CartItemCommandService {
     }
 
     const isInternalProduct = product.originType !== "EXTERNAL";
-    const availableStock = Math.max(0, variant.inventory?.quantityAvailable ?? 0);
+    const availableStock = Math.max(
+      0,
+      variant.inventory?.quantityAvailable ?? 0,
+    );
     if (isInternalProduct && availableStock < dto.quantity) {
       throw new CartStockExceededError();
     }
 
-    const cart = await this.cartQueryService.getOrCreateActiveCartEntity(identity);
+    const cart =
+      await this.cartQueryService.getOrCreateActiveCartEntity(identity);
 
     await this.dataSource.transaction(async (manager) => {
       const lockedCart = await manager.findOne(Cart, {
@@ -186,7 +233,10 @@ export class CartItemCommandService {
       }
 
       const isInternalProduct = product.originType !== "EXTERNAL";
-      const availableStock = Math.max(0, variant.inventory?.quantityAvailable ?? 0);
+      const availableStock = Math.max(
+        0,
+        variant.inventory?.quantityAvailable ?? 0,
+      );
       if (isInternalProduct && availableStock < dto.quantity) {
         throw new CartStockExceededError();
       }
@@ -218,7 +268,10 @@ export class CartItemCommandService {
   }
 
   // Xóa item thuộc đúng active cart của owner hiện tại và trả cart mới nhất cho frontend cập nhật cache.
-  async removeItem(identity: CartIdentity, itemId: string): Promise<CartResponse> {
+  async removeItem(
+    identity: CartIdentity,
+    itemId: string,
+  ): Promise<CartResponse> {
     const cart = await this.cartQueryService.findActiveCartEntity(identity);
     if (!cart) throw new NotFoundException("Không tìm thấy giỏ hàng active.");
 
