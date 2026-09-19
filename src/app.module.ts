@@ -29,7 +29,7 @@ import { CartModule } from "./modules/cart/cart.module";
         migrationsRun: true,
         synchronize: false,
         ssl:
-          config.get<string>("NODE_ENV") === "production"
+          config.get<string>("POSTGRES_SSL", "false") === "true"
             ? { rejectUnauthorized: false }
             : false,
         logging: config.get<string>("TYPEORM_LOGGING", "false") === "true",
