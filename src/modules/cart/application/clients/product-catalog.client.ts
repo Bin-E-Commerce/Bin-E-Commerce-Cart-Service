@@ -13,6 +13,7 @@ import type { ProductCatalogProduct } from "../types/product-catalog-product.typ
 @Injectable()
 export class ProductCatalogClient {
   private readonly targetBase: string;
+  private readonly internalToken: string;
 
   // Đọc URL Product Service từ config để local, Docker và production dùng cùng một client contract.
   constructor(private readonly config: ConfigService) {
@@ -20,16 +21,20 @@ export class ProductCatalogClient {
       "PRODUCT_SERVICE_URL",
       "http://localhost:3008",
     );
+    this.internalToken = config.get<string>("INTERNAL_SERVICE_TOKEN", "");
   }
 
   // Gọi endpoint nội bộ hiện có và chuẩn hóa lỗi upstream thành lỗi nghiệp vụ của Cart Service.
   async getProduct(productId: string): Promise<ProductCatalogProduct> {
-    const targetUrl = `${this.targetBase}/api/v1/products/${productId}`;
+    const targetUrl = `${this.targetBase}/api/v1/internal/products/${productId}/purchase-snapshot`;
 
     try {
       const response = await fetch(targetUrl, {
         signal: AbortSignal.timeout(5000),
-        headers: { accept: "application/json" },
+        headers: {
+          accept: "application/json",
+          "x-internal-service-token": this.internalToken,
+        },
       });
 
       if (response.status === 404) {
