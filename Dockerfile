@@ -31,6 +31,9 @@ RUN npm prune --omit=dev
 # -----------------------------------------------------------------------------
 FROM node:20-alpine AS production
 
+# Update Alpine packages so the runtime receives current security fixes.
+RUN apk upgrade --no-cache
+
 # Service không cần quyền root khi lắng nghe HTTP hoặc kết nối PostgreSQL.
 # npm/npx chỉ cần ở builder để cài dependency; runtime chỉ chạy bằng node.
 # Xóa npm trước khi tạo user để final image không chứa tooling không cần thiết.
