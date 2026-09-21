@@ -32,14 +32,16 @@ RUN npm prune --omit=dev
 FROM node:20-alpine AS production
 
 # Service không cần quyền root khi lắng nghe HTTP hoặc kết nối PostgreSQL.
-RUN addgroup -g 1001 -S nodejs \
+# npm/npx chỉ cần ở builder để cài dependency; runtime chỉ chạy bằng node.
+# Xóa npm trước khi tạo user để final image không chứa tooling không cần thiết.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx \
+  && addgroup -g 1001 -S nodejs \
   && adduser -S nestjs -u 1001
 
 WORKDIR /app
 
 # Chỉ copy dependency production đã prune và artifact JavaScript từ builder.
 COPY --from=builder /app/node_modules ./node_modules
-RUN npm cache clean --force
 
 COPY --from=builder /app/services/cart-service/dist/services/cart-service/src ./dist
 
