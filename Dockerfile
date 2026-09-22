@@ -47,6 +47,7 @@ WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules
 
 COPY --from=builder /app/services/cart-service/dist/services/cart-service/src ./dist
+COPY --from=builder /app/services/cart-service/dist/packages/common ./dist/packages/common
 
 # PORT mặc định dành cho container Compose. Khi chạy local độc lập, .env có thể
 # đặt PORT=3010; healthcheck bên dưới sẽ tự dùng giá trị runtime đó.
