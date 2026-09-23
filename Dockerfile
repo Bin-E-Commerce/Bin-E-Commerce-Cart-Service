@@ -13,7 +13,9 @@ WORKDIR /app
 COPY package.json package-lock.json tsconfig.base.json ./
 COPY services/cart-service/package.json services/cart-service/tsconfig.json services/cart-service/nest-cli.json ./services/cart-service/
 COPY packages/common ./packages/common
-RUN npm ci --workspace=services/cart-service --include=dev --ignore-scripts
+ENV NODE_ENV=development
+RUN npm ci --workspace=services/cart-service --include=dev --bin-links=true --ignore-scripts \
+  && test -x node_modules/.bin/tsc
 
 # Chỉ đưa source của Cart vào image build.
 COPY services/cart-service/src ./services/cart-service/src
