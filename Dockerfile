@@ -46,7 +46,9 @@ WORKDIR /app
 # Chỉ copy dependency production đã prune và artifact JavaScript từ builder.
 COPY --from=builder /app/node_modules ./node_modules
 
-COPY --from=builder /app/services/cart-service/dist/services/cart-service/src ./dist
+# Giữ nguyên rootDir của monorepo để import tương đối từ main.js tới packages/common
+# vẫn trỏ đúng trong runtime; không flatten src thành /app/dist/main.js.
+COPY --from=builder /app/services/cart-service/dist/services/cart-service ./dist/services/cart-service
 COPY --from=builder /app/services/cart-service/dist/packages/common ./dist/packages/common
 
 # PORT mặc định dành cho container Compose. Khi chạy local độc lập, .env có thể
@@ -65,4 +67,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 USER nestjs
 
 # Chạy Node trực tiếp để nhận SIGTERM đúng cách khi container dừng hoặc rollout.
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/services/cart-service/src/main.js"]
