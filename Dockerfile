@@ -15,14 +15,16 @@ COPY services/cart-service/package.json services/cart-service/tsconfig.json serv
 COPY packages/common ./packages/common
 ENV NODE_ENV=development
 RUN npm ci --workspace=services/cart-service --include=dev --bin-links=true --ignore-scripts \
-  && test -x node_modules/.bin/tsc
+  && test -x node_modules/.bin/tsc \
+  && test -x node_modules/.bin/tsc-alias
 
 # Chỉ đưa source của Cart vào image build.
 COPY services/cart-service/src ./services/cart-service/src
 
 # tsconfig.json dùng rootDir của monorepo nên output nằm dưới
 # services/cart-service/dist/services/cart-service/src.
-RUN npx tsc -p services/cart-service/tsconfig.json
+RUN npx tsc -p services/cart-service/tsconfig.json \
+  && npx tsc-alias -p services/cart-service/tsconfig.json
 
 # Build đã xong nên loại dev dependency ngay trong builder; runtime chỉ nhận
 # phần node_modules production đã được kiểm tra và không cần package manifest.
