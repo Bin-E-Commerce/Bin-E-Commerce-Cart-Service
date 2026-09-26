@@ -1,16 +1,16 @@
 // Migration này tạo aggregate cart cho Phase 1 và unique guard chống hai active cart cùng owner.
 // Migration không tạo item, tồn kho hay Kafka outbox vì các nghiệp vụ đó thuộc phase kế tiếp.
 
-import { MigrationInterface, QueryRunner } from "typeorm";
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
 // Tạo cấu trúc dữ liệu cart có thể chạy lặp qua cơ chế migration của TypeORM.
 export class CreateCarts1787850000000 implements MigrationInterface {
-  name = "CreateCarts1787850000000";
+    name = 'CreateCarts1787850000000';
 
-  // Tạo bảng và constraint cần thiết cho việc lấy hoặc tạo active cart.
-  public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`);
-    await queryRunner.query(`
+    // Tạo bảng và constraint cần thiết cho việc lấy hoặc tạo active cart.
+    public async up(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`);
+        await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "carts" (
         "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "owner_type" varchar(20) NOT NULL,
@@ -22,12 +22,12 @@ export class CreateCarts1787850000000 implements MigrationInterface {
         CONSTRAINT "ck_carts_status" CHECK ("status" IN ('ACTIVE', 'CHECKED_OUT', 'ABANDONED'))
       )
     `);
-    await queryRunner.query(`
+        await queryRunner.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS "uq_carts_active_owner"
       ON "carts" ("owner_type", "owner_id")
       WHERE "status" = 'ACTIVE'
     `);
-    await queryRunner.query(`
+        await queryRunner.query(`
       DO $$
       BEGIN
         IF NOT EXISTS (
@@ -42,10 +42,10 @@ export class CreateCarts1787850000000 implements MigrationInterface {
         END IF;
       END $$;
     `);
-  }
+    }
 
-  // Xóa bảng do migration này sở hữu khi rollback ở môi trường phát triển.
-  public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP TABLE "carts"`);
-  }
+    // Xóa bảng do migration này sở hữu khi rollback ở môi trường phát triển.
+    public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`DROP TABLE "carts"`);
+    }
 }

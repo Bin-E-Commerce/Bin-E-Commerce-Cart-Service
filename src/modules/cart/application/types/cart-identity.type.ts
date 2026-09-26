@@ -3,12 +3,12 @@
 
 // Phân biệt cart của tài khoản đăng nhập và cart của trình duyệt chưa đăng nhập.
 export enum CartOwnerType {
-  CUSTOMER = "CUSTOMER",
-  GUEST = "GUEST",
+    CUSTOMER = 'CUSTOMER',
+    GUEST = 'GUEST',
 }
 
 // Identity chuẩn hóa để repository không phải biết format HTTP header.
 export interface CartIdentity {
-  ownerType: CartOwnerType;
-  ownerId: string;
+    ownerType: CartOwnerType;
+    ownerId: string;
 }

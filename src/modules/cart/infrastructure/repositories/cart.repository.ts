@@ -1,36 +1,36 @@
 // Repository này là cổng truy cập bảng carts của Cart Service.
 // Repository không chứa quy tắc chọn owner; quy tắc đó nằm ở CartIdentityResolver.
 
-import { Injectable } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
-import { Cart } from "../../../../database/entities/cart.entity";
-import { CartStatus } from "../../../../database/enums/cart-status.enum";
-import { CartIdentity } from "../../application/types/cart-identity.type";
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Cart } from '@/database/entities/cart.entity';
+import { CartStatus } from '@/database/enums/cart-status.enum';
+import { CartIdentity } from '@/modules/cart/application/types/cart-identity.type';
 
 // Đóng gói query active cart để application service không phụ thuộc TypeORM API.
 @Injectable()
 export class CartRepository {
-  constructor(
-    @InjectRepository(Cart)
-    private readonly repository: Repository<Cart>,
-  ) {}
+    constructor(
+        @InjectRepository(Cart)
+        private readonly repository: Repository<Cart>,
+    ) {}
 
-  // Tìm active cart theo cặp owner type và opaque owner id.
-  findActiveByIdentity(identity: CartIdentity): Promise<Cart | null> {
-    return this.repository.findOne({
-      where: {
-        ownerType: identity.ownerType,
-        ownerId: identity.ownerId,
-        status: CartStatus.ACTIVE,
-      },
-    });
-  }
+    // Tìm active cart theo cặp owner type và opaque owner id.
+    findActiveByIdentity(identity: CartIdentity): Promise<Cart | null> {
+        return this.repository.findOne({
+            where: {
+                ownerType: identity.ownerType,
+                ownerId: identity.ownerId,
+                status: CartStatus.ACTIVE,
+            },
+        });
+    }
 
-  // Tìm cart theo ID sau khi command đã xác định ownership; query này chỉ nhận cart ACTIVE.
-  findActiveById(id: string): Promise<Cart | null> {
-    return this.repository.findOne({
-      where: { id, status: CartStatus.ACTIVE },
-    });
-  }
+    // Tìm cart theo ID sau khi command đã xác định ownership; query này chỉ nhận cart ACTIVE.
+    findActiveById(id: string): Promise<Cart | null> {
+        return this.repository.findOne({
+            where: { id, status: CartStatus.ACTIVE },
+        });
+    }
 }
