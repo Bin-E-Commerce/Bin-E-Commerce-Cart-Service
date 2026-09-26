@@ -3,15 +3,15 @@
 
 // Chuyển chuỗi tiền decimal thành cents mà không đi qua Number.
 export function toCents(value: string): bigint {
-  const normalized = value.trim();
-  const [wholePart, fractionPart = ""] = normalized.split(".");
-  const fraction = `${fractionPart}00`.slice(0, 2);
-  return BigInt(wholePart || "0") * 100n + BigInt(fraction);
+    const normalized = value.trim();
+    const [wholePart, fractionPart = ''] = normalized.split('.');
+    const fraction = `${fractionPart}00`.slice(0, 2);
+    return BigInt(wholePart || '0') * 100n + BigInt(fraction);
 }
 
 // Chuyển cents về response string có đúng hai chữ số thập phân.
 export function fromCents(value: bigint): string {
-  const whole = value / 100n;
-  const fraction = (value % 100n).toString().padStart(2, "0");
-  return `${whole.toString()}.${fraction}`;
+    const whole = value / 100n;
+    const fraction = (value % 100n).toString().padStart(2, '0');
+    return `${whole.toString()}.${fraction}`;
 }

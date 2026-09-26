@@ -1,15 +1,15 @@
 // Migration này tạo các dòng sản phẩm của cart và snapshot dữ liệu cần cho trang giỏ hàng.
 // Product/variant không có foreign key cross-service; chỉ cart_id tham chiếu aggregate nội bộ.
 
-import { MigrationInterface, QueryRunner } from "typeorm";
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
 // Tạo cart_items cùng các constraint bảo vệ quantity, tiền và một SKU trong mỗi cart.
 export class CreateCartItems1787987299000 implements MigrationInterface {
-  name = "CreateCartItems1787987299000";
+    name = 'CreateCartItems1787987299000';
 
-  // Tạo bảng item sau bảng carts và cascade khi cart bị xóa.
-  public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`
+    // Tạo bảng item sau bảng carts và cascade khi cart bị xóa.
+    public async up(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "cart_items" (
         "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "cart_id" uuid NOT NULL,
@@ -31,15 +31,15 @@ export class CreateCartItems1787987299000 implements MigrationInterface {
         CONSTRAINT "fk_cart_items_cart" FOREIGN KEY ("cart_id") REFERENCES "carts"("id") ON DELETE CASCADE
       )
     `);
-    await queryRunner.query(`
+        await queryRunner.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS "uq_cart_items_cart_variant"
       ON "cart_items" ("cart_id", "variant_id")
     `);
-    await queryRunner.query(`
+        await queryRunner.query(`
       CREATE INDEX IF NOT EXISTS "idx_cart_items_cart_id"
       ON "cart_items" ("cart_id")
     `);
-    await queryRunner.query(`
+        await queryRunner.query(`
       DO $$
       BEGIN
         IF NOT EXISTS (
@@ -76,12 +76,12 @@ export class CreateCartItems1787987299000 implements MigrationInterface {
         END IF;
       END $$;
     `);
-  }
+    }
 
-  // Xóa index và bảng item khi rollback migration ở môi trường phát triển.
-  public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX "idx_cart_items_cart_id"`);
-    await queryRunner.query(`DROP INDEX "uq_cart_items_cart_variant"`);
-    await queryRunner.query(`DROP TABLE "cart_items"`);
-  }
+    // Xóa index và bảng item khi rollback migration ở môi trường phát triển.
+    public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`DROP INDEX "idx_cart_items_cart_id"`);
+        await queryRunner.query(`DROP INDEX "uq_cart_items_cart_variant"`);
+        await queryRunner.query(`DROP TABLE "cart_items"`);
+    }
 }
