@@ -46,7 +46,6 @@ describe('CartItemCommandService', () => {
     ): ProductCatalogProduct {
         return {
             id: 'product-1',
-            originType: 'INTERNAL',
             status: 'ACTIVE',
             sellerShopId: 'shop-1',
             name: 'Áo thể thao',
@@ -138,7 +137,6 @@ describe('CartItemCommandService', () => {
                 cartId: 'cart-1',
                 productId: 'product-1',
                 variantId: 'variant-1',
-                originType: 'INTERNAL',
                 sku: 'SKU-001',
                 unitPrice: '22000.00',
                 quantity: 2,
@@ -206,40 +204,6 @@ describe('CartItemCommandService', () => {
             CartStockExceededError,
         );
         expect(itemRepository.save).not.toHaveBeenCalled();
-    });
-
-    // Product crawl được lưu vào cart để người dùng theo dõi, nhưng checkout sẽ chặn ở Product Service.
-    it('stores external products without using crawled stock as purchasable inventory', async () => {
-        // Arrange
-        const { target, itemRepository, mockProductCatalogClient } = setup();
-        (mockProductCatalogClient.getProduct as jest.Mock).mockResolvedValue(
-            product({
-                originType: 'EXTERNAL',
-                variants: [
-                    {
-                        ...product().variants[0]!,
-                        inventory: { quantityAvailable: 0 },
-                    },
-                ],
-            }),
-        );
-
-        // Act
-        await target.addItem(identity, {
-            productId: 'product-1',
-            variantId: 'variant-1',
-            quantity: 1,
-        });
-
-        // Assert
-        expect(itemRepository.create).toHaveBeenCalledWith(
-            expect.objectContaining({
-                productId: 'product-1',
-                originType: 'EXTERNAL',
-                quantity: 1,
-            }),
-        );
-        expect(itemRepository.save).toHaveBeenCalledTimes(1);
     });
 
     // Update quantity phải đọc đúng item thuộc cart hiện tại, kiểm tra stock khi tăng và trả response cart mới.

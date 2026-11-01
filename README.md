@@ -58,18 +58,18 @@ Cart Service owns the active-cart aggregate, resolves the owner identity, valida
 
 ## 2. Service at a glance
 
-| Attribute | Value |
-| --- | --- |
-| Service | cart-service |
-| Default port | 3010 local / 3003 Compose |
-| HTTP prefix | /api |
-| Public URI version | v1 |
-| Development docs | /docs |
-| Health endpoint | /api/v1/health |
-| Database | PostgreSQL + TypeORM |
-| Downstream dependency | Product Service |
-| Internal authentication | InternalServiceGuard and shared token |
-| Persistence mode | Migrations enabled, synchronize disabled |
+| Attribute               | Value                                    |
+| ----------------------- | ---------------------------------------- |
+| Service                 | cart-service                             |
+| Default port            | 3010 local / 3003 Compose                |
+| HTTP prefix             | /api                                     |
+| Public URI version      | v1                                       |
+| Development docs        | /docs                                    |
+| Health endpoint         | /api/v1/health                           |
+| Database                | PostgreSQL + TypeORM                     |
+| Downstream dependency   | Product Service                          |
+| Internal authentication | InternalServiceGuard and shared token    |
+| Persistence mode        | Migrations enabled, synchronize disabled |
 
 ### Runtime responsibilities
 
@@ -84,32 +84,32 @@ The service does not answer how much inventory should ultimately be reserved or 
 
 ## 3. What it owns
 
-| Domain boundary | Cart Service owns |
-| --- | --- |
-| Cart aggregate | Active, checked-out and abandoned cart state |
-| Cart identity | Customer and guest owner mapping |
-| Cart items | Product/variant reference, quantity and display snapshot |
-| Cart commands | Add, update, remove and checkout transition |
-| Cart read model | Stable response mapping for cart pages |
-| Database integrity | One active cart per owner and one item per cart variant |
+| Domain boundary           | Cart Service owns                                        |
+| ------------------------- | -------------------------------------------------------- |
+| Cart aggregate            | Active, checked-out and abandoned cart state             |
+| Cart identity             | Customer and guest owner mapping                         |
+| Cart items                | Product/variant reference, quantity and display snapshot |
+| Cart commands             | Add, update, remove and checkout transition              |
+| Cart read model           | Stable response mapping for cart pages                   |
+| Database integrity        | One active cart per owner and one item per cart variant  |
 | Product validation client | Contract call to Product Service before item persistence |
 
 ### What it does not own
 
-| Concern | Source of truth |
-| --- | --- |
-| User identity | Auth Service and trusted Gateway context |
-| Product master data | Product Service |
-| Current price and inventory | Product Service / checkout contract |
-| Order aggregate | Order Service |
-| Payment status | Payment/order domain |
-| Shipment status | Shipping Service |
+| Concern                     | Source of truth                          |
+| --------------------------- | ---------------------------------------- |
+| User identity               | Auth Service and trusted Gateway context |
+| Product master data         | Product Service                          |
+| Current price and inventory | Product Service / checkout contract      |
+| Order aggregate             | Order Service                            |
+| Payment status              | Payment/order domain                     |
+| Shipment status             | Shipping Service                         |
 
 The item stores a product display and price snapshot so the cart page can render consistently. That snapshot is not a checkout authorization and must be revalidated before an order is committed.
 
 ## 4. Architecture
 
-~~~text
+```text
 Browser
    |
    v
@@ -125,7 +125,7 @@ Cart Service
    |         +--> ProductCatalogClient --> Product Service
    |
    +--> Cart repositories --> PostgreSQL
-~~~
+```
 
 ### Layer responsibilities
 
@@ -167,36 +167,36 @@ Public mutations resolve the cart from the request identity. Internal checkout a
 
 ### 6.1. Start local
 
-~~~powershell
+```powershell
 cd services/cart-service
 Copy-Item .env.example .env
 npm install
 npm run dev
-~~~
+```
 
 The service expects PostgreSQL and Product Service to be reachable through the values in .env.
 
 ### 6.2. Check health and OpenAPI
 
-~~~powershell
+```powershell
 curl http://localhost:3010/api/v1/health
-~~~
+```
 
 Open http://localhost:3003/docs in development. Swagger describes the public cart controller; internal endpoints should remain a service-to-service contract.
 
 ### 6.3. Read a customer cart through the Gateway
 
-~~~powershell
+```powershell
 curl http://localhost:3001/api/v1/cart -H "Authorization: Bearer <keycloak-access-token>"
-~~~
+```
 
 The Gateway must inject a verified x-user-id. A request without a customer or valid guest session identity is rejected instead of creating an orphan cart.
 
 ### 6.4. Guest cart contract
 
-~~~powershell
+```powershell
 curl http://localhost:3001/api/v1/cart -H "x-session-id: 550e8400-e29b-41d4-a716-446655440000"
-~~~
+```
 
 In the real browser flow, the session ID should be generated and persisted by the client according to the web application's session contract. The service validates the format and treats it as a guest owner, not as a user identity.
 
@@ -207,21 +207,21 @@ In the real browser flow, the session ID should be generated and persisted by th
 
 ### Required dependencies
 
-| Dependency | Why it is required |
-| --- | --- |
-| PostgreSQL | Cart and cart-item persistence |
+| Dependency      | Why it is required                                            |
+| --------------- | ------------------------------------------------------------- |
+| PostgreSQL      | Cart and cart-item persistence                                |
 | Product Service | Product/variant status, price snapshot and available quantity |
-| API Gateway | Browser authentication and identity propagation |
+| API Gateway     | Browser authentication and identity propagation               |
 
 ### Local build
 
-~~~powershell
+```powershell
 cd services/cart-service
 Copy-Item .env.example .env
 npm run type-check
 npm run build
 npm run start
-~~~
+```
 
 ### Recovery and rollback
 
@@ -233,10 +233,10 @@ Rolling back code does not restore a cart item that a customer intentionally add
 
 The application identity is normalized to an owner type and owner ID:
 
-~~~text
+```text
 Customer: ownerType=CUSTOMER, ownerId=<verified x-user-id>
 Guest:    ownerType=GUEST,    ownerId=<validated x-session-id>
-~~~
+```
 
 The identity resolver prioritizes an authenticated customer over a guest session when both headers exist. This matters when a browser still carries its old guest session after login.
 
@@ -254,14 +254,14 @@ Controllers should not duplicate the customer-versus-guest decision. The resolve
 
 ## 9. Cart Lifecycle
 
-~~~text
+```text
 ACTIVE
   |  checkout transition
   v
 CHECKED_OUT
 
 ACTIVE --------------------------> ABANDONED
-~~~
+```
 
 ### Active-cart invariant
 
@@ -281,7 +281,7 @@ Update/remove must not create an empty cart as a side effect. They first find th
 
 ## 10. Add Item Flow
 
-~~~text
+```text
 POST /cart/items
        |
        v
@@ -304,7 +304,7 @@ insert or increase the existing variant item
        |
        v
 return the latest cart response
-~~~
+```
 
 ### Product snapshot boundary
 
@@ -329,14 +329,14 @@ These errors should remain distinguishable to the Gateway and frontend.
 
 ## 11. Checkout Handoff
 
-~~~text
+```text
 Order Service
       -> internal cart lookup for the active owner
       -> validate price/stock and commit the order
       -> internal cart checkout transition
       -> Cart marks the active aggregate CHECKED_OUT
       -> next public GET creates a new ACTIVE cart
-~~~
+```
 
 ### Boundary rules
 
@@ -354,26 +354,26 @@ All public cart routes, including health, use /api/v1.
 
 ### Public cart API
 
-| Method | Route | Purpose |
-| --- | --- | --- |
-| GET | /api/v1/cart | Get or create the active cart |
-| POST | /api/v1/cart/items | Add a product variant |
-| PATCH | /api/v1/cart/items/:itemId | Set supported item fields/quantity |
+| Method | Route                      | Purpose                            |
+| ------ | -------------------------- | ---------------------------------- |
+| GET    | /api/v1/cart               | Get or create the active cart      |
+| POST   | /api/v1/cart/items         | Add a product variant              |
+| PATCH  | /api/v1/cart/items/:itemId | Set supported item fields/quantity |
 | DELETE | /api/v1/cart/items/:itemId | Remove an item from the owner cart |
-| GET | /api/v1/health | Process health |
+| GET    | /api/v1/health             | Process health                     |
 
 ### Internal checkout API
 
-| Method | Route | Purpose |
-| --- | --- | --- |
-| GET | /api/internal/carts/active | Read an existing active cart without creating an empty one |
-| POST | /api/internal/carts/checkout | Mark the active cart as checked out |
+| Method | Route                        | Purpose                                                    |
+| ------ | ---------------------------- | ---------------------------------------------------------- |
+| GET    | /api/internal/carts/active   | Read an existing active cart without creating an empty one |
+| POST   | /api/internal/carts/checkout | Mark the active cart as checked out                        |
 
 The public controller is explicitly versioned. The internal controller is a trusted service contract and should not be exposed as a browser-facing feature.
 
 ## 13. Data Model
 
-~~~text
+```text
 Cart
 ├── id
 ├── owner_type
@@ -389,20 +389,19 @@ CartItem
 ├── variant_name/sku snapshot
 ├── unit_price snapshot
 ├── quantity
-├── origin_type
 └── timestamps
-~~~
+```
 
 ### Database constraints
 
-| Constraint | Purpose |
-| --- | --- |
-| Unique active owner | Prevent two active carts for one owner |
-| Cart-item foreign key | Keep item owned by a real cart |
-| Unique cart/variant | Prevent duplicate variant rows |
-| Positive quantity | Reject invalid cart lines at database level |
-| Non-negative unit price | Prevent impossible stored snapshot |
-| Cascade item deletion | Remove child lines when cart is removed |
+| Constraint              | Purpose                                     |
+| ----------------------- | ------------------------------------------- |
+| Unique active owner     | Prevent two active carts for one owner      |
+| Cart-item foreign key   | Keep item owned by a real cart              |
+| Unique cart/variant     | Prevent duplicate variant rows              |
+| Positive quantity       | Reject invalid cart lines at database level |
+| Non-negative unit price | Prevent impossible stored snapshot          |
+| Cascade item deletion   | Remove child lines when cart is removed     |
 
 Product and variant IDs are logical cross-service references. They do not create a foreign key to Product Service's database.
 
@@ -426,7 +425,7 @@ Setting an absolute quantity is safer than sending a delta for a retryable PATCH
 
 ## 15. Project Structure
 
-~~~text
+```text
 src/
 ├── main.ts                              # HTTP bootstrap, validation, versioning, Swagger
 ├── app.module.ts                        # PostgreSQL and feature composition
@@ -451,25 +450,25 @@ src/
         ├── controllers/                 # Public and internal routes
         ├── dto/                         # Add/update request schemas
         └── guards/                      # Internal service guard
-~~~
+```
 
 The application layer owns use-case rules. Repositories do not decide actor ownership, and controllers do not import Product persistence entities.
 
 ## 16. Configuration Reference
 
-| Variable | Purpose | Example |
-| --- | --- | --- |
-| PORT | HTTP listener port | 3003 |
-| NODE_ENV | Runtime mode and docs behavior | development |
-| APP_VERSION | Application metadata | 1.0.0 |
-| POSTGRES_HOST | PostgreSQL host | localhost |
-| POSTGRES_PORT | PostgreSQL port | 5432 |
-| POSTGRES_USER | Database user | bin_ecommerce |
-| POSTGRES_PASSWORD | Database password | deployment secret |
-| POSTGRES_DB | Cart database | bin_ecommerce_cart |
-| PRODUCT_SERVICE_URL | Product integration base URL | http://localhost:3008 |
-| INTERNAL_SERVICE_TOKEN | Trusted internal caller token | deployment secret |
-| TYPEORM_LOGGING | Enable TypeORM logging | false |
+| Variable               | Purpose                        | Example               |
+| ---------------------- | ------------------------------ | --------------------- |
+| PORT                   | HTTP listener port             | 3003                  |
+| NODE_ENV               | Runtime mode and docs behavior | development           |
+| APP_VERSION            | Application metadata           | 1.0.0                 |
+| POSTGRES_HOST          | PostgreSQL host                | localhost             |
+| POSTGRES_PORT          | PostgreSQL port                | 5432                  |
+| POSTGRES_USER          | Database user                  | bin_ecommerce         |
+| POSTGRES_PASSWORD      | Database password              | deployment secret     |
+| POSTGRES_DB            | Cart database                  | bin_ecommerce_cart    |
+| PRODUCT_SERVICE_URL    | Product integration base URL   | http://localhost:3008 |
+| INTERNAL_SERVICE_TOKEN | Trusted internal caller token  | deployment secret     |
+| TYPEORM_LOGGING        | Enable TypeORM logging         | false                 |
 
 Use [.env.example](./.env.example) as the local variable template. Never commit .env, production database credentials or the internal token.
 
@@ -477,23 +476,23 @@ Use [.env.example](./.env.example) as the local variable template. Never commit 
 
 ### Commands
 
-| Command | Purpose |
-| --- | --- |
-| npm run dev | Start Nest watch mode |
-| npm run build | Compile the service |
-| npm run start | Run the built artifact |
+| Command            | Purpose                            |
+| ------------------ | ---------------------------------- |
+| npm run dev        | Start Nest watch mode              |
+| npm run build      | Compile the service                |
+| npm run start      | Run the built artifact             |
 | npm run type-check | TypeScript validation without emit |
-| npm run lint | ESLint source validation |
-| npm test | Run Jest tests |
+| npm run lint       | ESLint source validation           |
+| npm test           | Run Jest tests                     |
 
 ### Recommended local gate
 
-~~~powershell
+```powershell
 npm run type-check
 npm run lint
 npm test -- --runInBand
 npm run build
-~~~
+```
 
 Use a disposable cart database when manually testing checkout transitions. Do not point local tests at a shared cart database with real customer data.
 
@@ -526,7 +525,7 @@ Use PostgreSQL and a Product Service test double to verify:
 
 ### Acceptance flow
 
-~~~text
+```text
 Given a valid customer or guest identity
 When the client reads the active cart
 Then exactly one owner-scoped cart is returned
@@ -536,7 +535,7 @@ When Order Service completes checkout
 Then the cart becomes CHECKED_OUT
 When the client reads the cart again
 Then a new ACTIVE cart can be created for the same owner
-~~~
+```
 
 ## 19. Operational Notes
 
@@ -546,17 +545,17 @@ Monitor PostgreSQL connection pool, transaction latency, unique-constraint confl
 
 ### Failure matrix
 
-| Failure | Expected result |
-| --- | --- |
-| Missing identity | Reject request; do not create an orphan cart |
-| Product not found | Return catalog-not-found error |
-| Product unavailable | Reject add/update according to item policy |
-| Stock too low | Return stock-exceeded conflict |
+| Failure                 | Expected result                                                  |
+| ----------------------- | ---------------------------------------------------------------- |
+| Missing identity        | Reject request; do not create an orphan cart                     |
+| Product not found       | Return catalog-not-found error                                   |
+| Product unavailable     | Reject add/update according to item policy                       |
+| Stock too low           | Return stock-exceeded conflict                                   |
 | Product Service timeout | Return service-unavailable error; do not persist unverified item |
-| Concurrent first GET | One active cart survives; loser reads it |
-| Concurrent add | Transaction/constraint prevents lost or duplicate line |
-| Checkout retry | Owner-scoped transition remains safe to retry |
-| Database unavailable | Do not report successful persistence |
+| Concurrent first GET    | One active cart survives; loser reads it                         |
+| Concurrent add          | Transaction/constraint prevents lost or duplicate line           |
+| Checkout retry          | Owner-scoped transition remains safe to retry                    |
+| Database unavailable    | Do not report successful persistence                             |
 
 ### Deployment checklist
 

@@ -25,7 +25,6 @@ export interface ProductCatalogVariant {
 
 export interface ProductCatalogProduct {
     id: string;
-    originType?: 'INTERNAL' | 'EXTERNAL';
     status: 'DRAFT' | 'ACTIVE' | 'INACTIVE' | 'DELETED';
     sellerShopId?: string | null;
     sellerOwnerId?: string | null;

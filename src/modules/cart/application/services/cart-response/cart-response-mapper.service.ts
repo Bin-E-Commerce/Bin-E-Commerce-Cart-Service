@@ -48,7 +48,6 @@ export class CartResponseMapper {
             productId: item.productId,
             variantId: item.variantId,
             sellerShopId: item.sellerShopId,
-            originType: item.originType,
             sku: item.sku,
             productName: item.productName,
             variantName: item.variantName,
