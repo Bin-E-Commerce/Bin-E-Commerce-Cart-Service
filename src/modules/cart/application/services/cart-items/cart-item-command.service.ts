@@ -114,8 +114,6 @@ export class CartItemCommandService {
         if (!variant) {
             throw new NotFoundException('Không tìm thấy phân loại sản phẩm.');
         }
-        // Sản phẩm crawl vẫn được lưu như một lựa chọn tham khảo; chỉ sản phẩm không active mới bị chặn khỏi cart.
-        // Tồn kho của dữ liệu crawl không phải tồn kho fulfillment của Bin nên không được dùng để khóa thao tác lưu.
         if (product.status !== 'ACTIVE') {
             throw new CartProductNotPurchasableError();
         }
@@ -133,12 +131,11 @@ export class CartItemCommandService {
             );
         }
 
-        const isInternalProduct = product.originType !== 'EXTERNAL';
         const availableStock = Math.max(
             0,
             variant.inventory?.quantityAvailable ?? 0,
         );
-        if (isInternalProduct && availableStock < dto.quantity) {
+        if (availableStock < dto.quantity) {
             throw new CartStockExceededError();
         }
 
@@ -159,8 +156,8 @@ export class CartItemCommandService {
             });
             const nextQuantity = (existingItem?.quantity ?? 0) + dto.quantity;
 
-            // Chỉ giới hạn stock với hàng nội bộ; hàng crawl không được coi là nguồn tồn kho để đặt hàng.
-            if (isInternalProduct && nextQuantity > availableStock) {
+            // Kiểm tra lại tổng quantity sau khi khóa cart để không vượt tồn kho khi nhiều request cùng thêm SKU.
+            if (nextQuantity > availableStock) {
                 throw new CartStockExceededError();
             }
 
@@ -184,7 +181,6 @@ export class CartItemCommandService {
                 productId: product.id,
                 variantId: variant.id,
                 sellerShopId: product.sellerShopId ?? null,
-                originType: product.originType ?? 'INTERNAL',
                 sku: variant.sku,
                 productName: product.name,
                 variantName: variant.name,
@@ -235,7 +231,6 @@ export class CartItemCommandService {
                     'Không tìm thấy phân loại sản phẩm.',
                 );
             }
-            // Item crawl đã lưu vẫn có thể được tăng/giảm như một danh sách tham khảo khi variant còn active.
             if (product.status !== 'ACTIVE') {
                 throw new CartProductNotPurchasableError();
             }
@@ -245,12 +240,11 @@ export class CartItemCommandService {
                 );
             }
 
-            const isInternalProduct = product.originType !== 'EXTERNAL';
             const availableStock = Math.max(
                 0,
                 variant.inventory?.quantityAvailable ?? 0,
             );
-            if (isInternalProduct && availableStock < dto.quantity) {
+            if (availableStock < dto.quantity) {
                 throw new CartStockExceededError();
             }
         }
