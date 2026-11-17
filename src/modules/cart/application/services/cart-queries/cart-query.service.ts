@@ -1,7 +1,11 @@
-// Application service này thực hiện use case Phase 1: lấy hoặc tạo active cart.
-// Service chưa xử lý item, giá, tồn kho, merge guest hay checkout.
+// Application service này lấy active cart và dựng response selection từ repository.
+// Nó không xác thực giá/tồn kho; Order Service thực hiện các kiểm tra đó trước khi tạo order.
 
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+    BadRequestException,
+    Injectable,
+    NotFoundException,
+} from '@nestjs/common';
 import { DataSource, QueryFailedError } from 'typeorm';
 import { Cart } from '@/database/entities/cart.entity';
 import { CartStatus } from '@/database/enums/cart-status.enum';
@@ -61,17 +65,43 @@ export class CartQueryService {
         return this.cartRepository.findActiveByIdentity(identity);
     }
 
-    // Đọc cart active theo ID và có thể giới hạn một item cho luồng Mua ngay.
-    // itemId chỉ được áp dụng sau khi cart đã được resolve theo owner ở controller nội bộ,
-    // vì vậy Order Service không thể dùng một itemId của tài khoản khác để đọc dữ liệu.
+    // Đọc cart active theo ID và giới hạn selection sau khi controller đã resolve owner.
+    // Danh sách phải có đủ item trong cart; không trả partial selection vì có thể làm quote khác với ý định mua.
     async getActiveCartById(
         id: string,
         itemId?: string,
+        itemIds?: string[],
     ): Promise<CartResponse> {
         const cart = await this.cartRepository.findActiveById(id);
         if (!cart)
             throw new NotFoundException('Không tìm thấy giỏ hàng active.');
         const items = await this.cartItemRepository.findByCartId(cart.id);
+        if (itemId && itemIds?.length) {
+            throw new BadRequestException(
+                'Chỉ gửi một dạng selection sản phẩm.',
+            );
+        }
+        if (itemIds) {
+            if (
+                itemIds.length === 0 ||
+                itemIds.length > 100 ||
+                new Set(itemIds).size !== itemIds.length
+            ) {
+                throw new BadRequestException(
+                    'Danh sách sản phẩm checkout không hợp lệ.',
+                );
+            }
+            const requestedIds = new Set(itemIds);
+            const selectedItems = items.filter((item) =>
+                requestedIds.has(item.id),
+            );
+            if (selectedItems.length !== requestedIds.size) {
+                throw new NotFoundException(
+                    'Một hoặc nhiều sản phẩm không còn trong giỏ hàng active.',
+                );
+            }
+            return this.cartResponseMapper.toResponse(cart, selectedItems);
+        }
         if (!itemId) return this.cartResponseMapper.toResponse(cart, items);
 
         const selectedItem = items.find((item) => item.id === itemId);

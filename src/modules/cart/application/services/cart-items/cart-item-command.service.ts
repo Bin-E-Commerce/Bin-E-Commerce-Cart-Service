@@ -1,10 +1,14 @@
-// File này chứa command use case của Cart, gồm add/update/remove và đóng cart sau checkout.
-// Product Service vẫn là nguồn sự thật cho product snapshot và tồn kho; Cart không sở hữu inventory.
+// File này điều phối command add/update/remove và cleanup cart sau khi Order Service chốt đơn.
+// Product Service vẫn là nguồn sự thật cho giá và tồn kho; Cart không tự xác nhận thanh toán.
 
 // Application service này thực hiện use case Add Item cho user đã đăng nhập.
 // Product Service là nguồn sự thật; Cart Service chỉ lưu snapshot sau khi xác nhận product, variant và tồn kho.
 
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+    BadRequestException,
+    Injectable,
+    NotFoundException,
+} from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { Cart } from '@/database/entities/cart.entity';
 import { CartItem } from '@/database/entities/cart-item.entity';
@@ -23,6 +27,7 @@ import { UpdateCartItemDto } from '@/modules/cart/presentation/dto/update-cart-i
 import { CartItemRepository } from '@/modules/cart/infrastructure/repositories/cart-item.repository';
 import { CartQueryService } from '@/modules/cart/application/services/cart-queries/cart-query.service';
 import { CartStatus } from '@/database/enums/cart-status.enum';
+import type { CartCheckoutItemSelection } from '@/modules/cart/application/types/cart-checkout-selection.type';
 
 // Thêm item theo transaction và khóa cart để hai request đồng thời không làm mất phép cộng quantity.
 @Injectable()
@@ -97,6 +102,74 @@ export class CartItemCommandService {
             await manager.save(Cart, lockedCart);
             await itemRepository.remove(item);
         });
+    }
+
+    // Dọn đúng lượng đã mua sau khi Order Service chốt đơn; orderId làm retry an toàn qua nhiều lần gọi.
+    // Nếu người mua đã sửa quantity sau snapshot, cleanup giữ nguyên dòng giảm xuống hoặc chỉ trừ phần tăng thêm.
+    // itemIds giữ tương thích order cũ; cutoff dọn các dòng chưa đổi sau lúc tạo order và giữ phần khách sửa tiếp.
+    async checkoutCartItems(
+        identity: CartIdentity,
+        orderId: string,
+        items?: CartCheckoutItemSelection[],
+        itemIds?: string[],
+        checkoutAllBefore?: string,
+    ): Promise<void> {
+        // Snapshot không được kết hợp với mode legacy; cutoff có thể đi một mình hoặc cùng ID legacy.
+        const hasItems = items !== undefined;
+        const hasItemIds = itemIds !== undefined;
+        const hasCheckoutCutoff = checkoutAllBefore !== undefined;
+        if (
+            (hasItems && (hasItemIds || hasCheckoutCutoff)) ||
+            (!hasItems && !hasItemIds && !hasCheckoutCutoff)
+        ) {
+            throw new BadRequestException(
+                'Chỉ gửi một kiểu lựa chọn khi dọn giỏ sau checkout.',
+            );
+        }
+        if (
+            hasCheckoutCutoff &&
+            (typeof checkoutAllBefore !== 'string' || !checkoutAllBefore.trim())
+        ) {
+            throw new BadRequestException(
+                'Mốc checkout toàn giỏ không hợp lệ.',
+            );
+        }
+        // Chuẩn hóa cutoff thành Date trước transaction; timestamp lỗi không được ghi marker như cleanup thành công.
+        const cleanupBefore = hasCheckoutCutoff
+            ? new Date(checkoutAllBefore)
+            : undefined;
+        if (cleanupBefore && !Number.isFinite(cleanupBefore.getTime())) {
+            throw new BadRequestException(
+                'Mốc checkout toàn giỏ không hợp lệ.',
+            );
+        }
+        const selections = items ?? [];
+        const legacyItemIds = itemIds ?? [];
+        const selectionIds = items
+            ? selections.map((selection) => selection.itemId)
+            : legacyItemIds;
+        if (
+            ((hasItems || hasItemIds) &&
+                (selectionIds.length === 0 || selectionIds.length > 1_000)) ||
+            new Set(selectionIds).size !== selectionIds.length ||
+            selections.some(
+                (selection) =>
+                    !Number.isInteger(selection.quantity) ||
+                    selection.quantity < 1 ||
+                    selection.quantity > 2_147_483_647,
+            )
+        ) {
+            throw new BadRequestException(
+                'Danh sách sản phẩm checkout không hợp lệ.',
+            );
+        }
+        await this.cartItemRepository.checkoutItems(
+            identity,
+            orderId,
+            items ? selections : undefined,
+            itemIds ? legacyItemIds : undefined,
+            checkoutAllBefore,
+        );
     }
 
     // Validate dữ liệu nguồn trước, sau đó lock cart và cộng quantity hiện tại trong một transaction.

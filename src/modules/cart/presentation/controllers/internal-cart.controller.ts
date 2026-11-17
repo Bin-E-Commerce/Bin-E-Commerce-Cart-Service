@@ -3,6 +3,7 @@
 // Cart Service vẫn resolve owner từ x-user-id để không cho service caller thao tác chéo tài khoản.
 
 import {
+    Body,
     Controller,
     Get,
     NotFoundException,
@@ -15,6 +16,7 @@ import { CartItemCommandService } from '@/modules/cart/application/services/cart
 import { CartQueryService } from '@/modules/cart/application/services/cart-queries/cart-query.service';
 import { InternalServiceGuard } from '@/modules/cart/presentation/guards/internal-service.guard';
 import type { CartResponse } from '@/modules/cart/application/types/cart-response.type';
+import { CheckoutCartItemsDto } from '@/modules/cart/presentation/dto/checkout-cart-items.dto';
 import type { Request } from 'express';
 import { Req } from '@nestjs/common';
 
@@ -28,11 +30,12 @@ export class InternalCartController {
         private readonly cartItemCommandService: CartItemCommandService,
     ) {}
 
-    // Lấy toàn bộ cart hoặc đúng một item của owner; itemId phục vụ riêng cho checkout Mua ngay.
+    // Lấy toàn cart, legacy một item hoặc tập item đã chọn; owner luôn được resolve từ header nội bộ.
     @Get('active')
     async getActiveCart(
         @Req() request: Request,
         @Query('itemId') itemId?: string,
+        @Query('itemIds') itemIdsValue?: string,
     ): Promise<CartResponse> {
         const identity = this.identityResolver.resolve(request);
         const cart = await this.cartQueryService.findActiveCartEntity(identity);
@@ -40,7 +43,12 @@ export class InternalCartController {
             throw new NotFoundException(
                 'Không tìm thấy giỏ hàng đang hoạt động.',
             );
-        return this.cartQueryService.getActiveCartById(cart.id, itemId);
+        const itemIds = itemIdsValue?.split(',').map((value) => value.trim());
+        return this.cartQueryService.getActiveCartById(
+            cart.id,
+            itemId,
+            itemIds,
+        );
     }
 
     // Đánh dấu active cart đã checkout để lần đọc tiếp theo tạo một cart rỗng mới.
@@ -61,5 +69,22 @@ export class InternalCartController {
         const identity = this.identityResolver.resolve(request);
         await this.cartItemCommandService.checkoutCartItem(identity, itemId);
         return { status: 'ITEM_CHECKED_OUT' };
+    }
+
+    // Dọn snapshot, ID legacy hoặc cart cũ chưa thay đổi kể từ lúc order được tạo.
+    @Post('checkout-items')
+    async checkoutCartItems(
+        @Req() request: Request,
+        @Body() dto: CheckoutCartItemsDto,
+    ): Promise<{ status: string }> {
+        const identity = this.identityResolver.resolve(request);
+        await this.cartItemCommandService.checkoutCartItems(
+            identity,
+            dto.orderId,
+            dto.items,
+            dto.itemIds,
+            dto.checkoutAllBefore,
+        );
+        return { status: 'ITEMS_CHECKED_OUT' };
     }
 }
