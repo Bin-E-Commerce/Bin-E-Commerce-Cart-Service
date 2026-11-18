@@ -30,7 +30,7 @@ export class InternalCartController {
         private readonly cartItemCommandService: CartItemCommandService,
     ) {}
 
-    // Lấy toàn cart, legacy một item hoặc tập item đã chọn; owner luôn được resolve từ header nội bộ.
+    // Lấy toàn cart, legacy một item hoặc tập item đã chọn; checkout tự kiểm tra tồn kho nên không cần gọi snapshot hiển thị.
     @Get('active')
     async getActiveCart(
         @Req() request: Request,
@@ -48,6 +48,7 @@ export class InternalCartController {
             cart.id,
             itemId,
             itemIds,
+            false,
         );
     }
 

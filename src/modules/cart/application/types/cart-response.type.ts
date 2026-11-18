@@ -1,5 +1,5 @@
-// Type này là response contract của GET /api/v1/cart trong Phase 1.
-// Items để rỗng có chủ đích vì nghiệp vụ Add Item chưa được triển khai.
+// Type này là response contract của Cart API, giữ snapshot mặt hàng riêng với tình trạng tồn kho hiện tại.
+// Trạng thái availability chỉ giúp giao diện hiển thị; Order Service vẫn xác minh và giữ hàng khi checkout.
 
 import { CartOwnerType } from '@/modules/cart/application/types/cart-identity.type';
 import { CartStatus } from '@/database/enums/cart-status.enum';
@@ -32,4 +32,14 @@ export interface CartItemResponse {
     originalPrice: string | null;
     quantity: number;
     lineTotal: string;
+    availabilityStatus?: CartItemAvailabilityStatus;
+    availableQuantity?: number | null;
 }
+
+// Trạng thái tồn kho phục vụ hiển thị; UNKNOWN không đồng nghĩa với còn hàng.
+export type CartItemAvailabilityStatus =
+    | 'AVAILABLE'
+    | 'OUT_OF_STOCK'
+    | 'INSUFFICIENT_STOCK'
+    | 'UNAVAILABLE'
+    | 'UNKNOWN';
